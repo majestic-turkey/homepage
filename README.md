@@ -87,11 +87,11 @@ docker compose up -d --build
 curl -s localhost:8080/api/services   # sanity check
 ```
 
-Then point the proxy at it. [deploy/Caddyfile](deploy/Caddyfile) is the shorter
-path — Caddy obtains and renews TLS certificates on its own, so with A/AAAA
-records for `thesaltworks.io` and `www` pointed at the VPS, that file is the
-entire config. [deploy/nginx.conf](deploy/nginx.conf) is the equivalent for
-nginx, and assumes certbot has already issued the certificate.
+Then point the proxy at it. [deploy/nginx.conf](deploy/nginx.conf) is the
+server block for `www.thesaltworks.io`, with notes on applying it via
+`certbot --nginx`. [deploy/Caddyfile](deploy/Caddyfile) is the equivalent if
+you ever switch — Caddy obtains and renews certificates itself, so that file is
+the entire config.
 
 If you later move your proxy into a container, delete the `ports:` block from
 `docker-compose.yml`, put the proxy and the homepage on a shared network, and
