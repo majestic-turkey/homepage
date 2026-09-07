@@ -6,8 +6,6 @@ services:
   gitea:
     image: gitea/gitea:latest
     restart: unless-stopped
-    networks:
-      - web
     labels:
       homepage.enable: "true"                       # required
       homepage.url: "https://git.thesaltworks.io"   # required (or set PUBLIC_HOST)
@@ -16,7 +14,3 @@ services:
       homepage.icon: "🌱"                            # optional: emoji, or an https:// image URL
       homepage.group: "Development"                 # optional, defaults to "Services"
       homepage.order: "10"                          # optional, lower sorts first
-
-networks:
-  web:
-    external: true

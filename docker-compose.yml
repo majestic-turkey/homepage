@@ -43,7 +43,12 @@ services:
       # PUBLIC_HOST: thesaltworks.io   # optional: derive links from published ports
     networks:
       - homepage-internal
-      - web
+    # Bound to loopback: the host's Caddy/nginx reaches it at 127.0.0.1:8080,
+    # and nothing outside the VPS can hit the container directly. If you later
+    # move your proxy into Docker, drop this and put both on a shared network
+    # instead so the port never leaves the daemon.
+    ports:
+      - "127.0.0.1:8080:8080"
     read_only: true
     security_opt:
       - no-new-privileges:true
@@ -59,7 +64,7 @@ services:
       homepage.order: "99"
 
 networks:
+  # No internet access and no published ports: the socket proxy is reachable
+  # only from the homepage container.
   homepage-internal:
     internal: true
-  web:
-    external: true

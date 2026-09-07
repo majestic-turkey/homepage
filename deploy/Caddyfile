@@ -8,9 +8,9 @@ thesaltworks.io {
 www.thesaltworks.io {
 	encode zstd gzip
 
-	# Caddy resolves `homepage` over the shared `web` Docker network, so the
-	# container never needs a published port on the host.
-	reverse_proxy homepage:8080
+	# The homepage container publishes on loopback only, so this is reachable
+	# from the host but not from outside the VPS.
+	reverse_proxy 127.0.0.1:8080
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"

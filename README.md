@@ -11,7 +11,7 @@ Single Go binary, no third-party dependencies, ~7 MB `scratch` image.
 
 ```
 browser ──► Caddy/nginx ──► homepage ──► docker-socket-proxy ──► /var/run/docker.sock
-                             :8080         (GET /containers/json only)
+            (on the host)   127.0.0.1:8080   (GET /containers/json only)
 ```
 
 The homepage polls `GET /containers/json`, keeps a 10-second cache, and serves
@@ -76,14 +76,15 @@ numbers of any opted-in container. Prefer `homepage.url` on a public page.
 
 ## Deploying
 
-The stack assumes an external Docker network named `web` shared with your
-reverse proxy:
+This assumes your reverse proxy runs on the host (not in Docker). The homepage
+publishes on `127.0.0.1:8080`, so it is reachable from the host's proxy but not
+from outside the VPS.
 
 ```sh
-docker network create web        # once, if it doesn't exist
 git clone <this repo> /opt/homepage
 cd /opt/homepage
 docker compose up -d --build
+curl -s localhost:8080/api/services   # sanity check
 ```
 
 Then point the proxy at it. [deploy/Caddyfile](deploy/Caddyfile) is the shorter
@@ -92,9 +93,9 @@ records for `thesaltworks.io` and `www` pointed at the VPS, that file is the
 entire config. [deploy/nginx.conf](deploy/nginx.conf) is the equivalent for
 nginx, and assumes certbot has already issued the certificate.
 
-Both resolve `homepage:8080` over the `web` network, so the homepage container
-needs no published port on the host. If your proxy runs on the host instead of
-in Docker, publish `127.0.0.1:8080:8080` and point it there.
+If you later move your proxy into a container, delete the `ports:` block from
+`docker-compose.yml`, put the proxy and the homepage on a shared network, and
+point the proxy at `homepage:8080` — then the port never leaves the daemon.
 
 ## Development
 
