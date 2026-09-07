@@ -1,0 +1,22 @@
+# Drop these labels onto any container you want to appear on the dashboard.
+# Containers without homepage.enable="true" are ignored entirely, so nothing
+# shows up on the public page unless you opt it in.
+
+services:
+  gitea:
+    image: gitea/gitea:latest
+    restart: unless-stopped
+    networks:
+      - web
+    labels:
+      homepage.enable: "true"                       # required
+      homepage.url: "https://git.thesaltworks.io"   # required (or set PUBLIC_HOST)
+      homepage.title: "Gitea"                       # optional, defaults to container name
+      homepage.description: "Git hosting"           # optional
+      homepage.icon: "🌱"                            # optional: emoji, or an https:// image URL
+      homepage.group: "Development"                 # optional, defaults to "Services"
+      homepage.order: "10"                          # optional, lower sorts first
+
+networks:
+  web:
+    external: true

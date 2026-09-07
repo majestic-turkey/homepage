@@ -1,0 +1,65 @@
+services:
+  # Read-only gatekeeper in front of /var/run/docker.sock. The homepage never
+  # touches the socket itself, and this proxy permits exactly one API surface:
+  # GET /containers/json. Everything else — exec, images, volumes, the ability
+  # to start a privileged container — is refused.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: docker-socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      POST: 0
+      # Explicit denials; the image defaults these off, but being loud about it
+      # means a future image default can't quietly widen the blast radius.
+      EXEC: 0
+      IMAGES: 0
+      INFO: 0
+      NETWORKS: 0
+      NODES: 0
+      SERVICES: 0
+      TASKS: 0
+      VOLUMES: 0
+      SECRETS: 0
+      SWARM: 0
+      SYSTEM: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - homepage-internal
+    # No ports: — the proxy is reachable only from this internal network.
+
+  homepage:
+    build: .
+    image: thesaltworks/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    depends_on:
+      - docker-socket-proxy
+    environment:
+      DOCKER_HOST: tcp://docker-socket-proxy:2375
+      SITE_TITLE: The Salt Works
+      SITE_TAGLINE: Services running on this box
+      # PUBLIC_HOST: thesaltworks.io   # optional: derive links from published ports
+    networks:
+      - homepage-internal
+      - web
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      homepage.enable: "true"
+      homepage.title: "Homepage"
+      homepage.url: "https://www.thesaltworks.io"
+      homepage.description: "This dashboard"
+      homepage.icon: "🧭"
+      homepage.group: "Infrastructure"
+      homepage.order: "99"
+
+networks:
+  homepage-internal:
+    internal: true
+  web:
+    external: true

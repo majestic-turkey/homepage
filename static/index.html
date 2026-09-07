@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>The Salt Works</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --border: #e2e5ea;
+    --text: #16191d;
+    --muted: #6b7280;
+    --accent: #2f6f6b;
+    --ok: #3fa06a;
+    --warn: #d19a2c;
+    --bad: #cc4b47;
+    --idle: #9aa2ae;
+    --shadow: 0 1px 2px rgba(16, 20, 26, .06), 0 8px 24px rgba(16, 20, 26, .05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1114;
+      --panel: #171b20;
+      --border: #262c33;
+      --text: #e8eaed;
+      --muted: #929aa5;
+      --accent: #5fb3ad;
+      --shadow: none;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding: 56px 24px 80px; }
+
+  header { margin-bottom: 40px; }
+  h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+  }
+  .tagline { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+
+  h2 {
+    margin: 36px 0 14px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .09em;
+    color: var(--muted);
+  }
+  h2:first-of-type { margin-top: 0; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .card:hover, .card:focus-visible {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    outline: none;
+  }
+
+  .icon {
+    flex: 0 0 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    overflow: hidden;
+  }
+  .icon img { width: 22px; height: 22px; object-fit: contain; }
+
+  .body { min-width: 0; flex: 1; }
+  .name {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .name span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .desc {
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dot {
+    flex: 0 0 7px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--idle);
+  }
+  .dot.healthy, .dot.running { background: var(--ok); }
+  .dot.starting { background: var(--warn); }
+  .dot.unhealthy, .dot.stopped { background: var(--bad); }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .notice {
+    padding: 14px 16px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .notice code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    font-size: 12.5px;
+    color: var(--text);
+  }
+  .error { border-style: solid; border-color: var(--bad); color: var(--bad); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1 id="title">The Salt Works</h1>
+      <p class="tagline" id="tagline">Loading&hellip;</p>
+    </header>
+
+    <main id="content"></main>
+
+    <footer>
+      <span id="updated"></span>
+      <span id="count"></span>
+    </footer>
+  </div>
+
+<script>
+(function () {
+  var REFRESH_MS = 30000;
+  var content = document.getElementById("content");
+  var updated = document.getElementById("updated");
+  var count = document.getElementById("count");
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function iconNode(icon, name) {
+    var wrap = el("div", "icon");
+    if (icon && /^https?:\/\//i.test(icon)) {
+      var img = document.createElement("img");
+      img.src = icon;
+      img.alt = "";
+      img.loading = "lazy";
+      // A broken icon URL shouldn't leave an empty hole in the card.
+      img.onerror = function () {
+        wrap.textContent = name.charAt(0).toUpperCase();
+      };
+      wrap.appendChild(img);
+    } else {
+      wrap.textContent = icon || name.charAt(0).toUpperCase();
+    }
+    return wrap;
+  }
+
+  function card(svc) {
+    var a = el("a", "card");
+    a.href = svc.url;
+    a.rel = "noopener noreferrer";
+
+    a.appendChild(iconNode(svc.icon, svc.name));
+
+    var body = el("div", "body");
+    var name = el("div", "name");
+    name.appendChild(el("span", null, svc.name));
+    name.appendChild(el("i", "dot " + svc.status)).title = svc.status;
+    body.appendChild(name);
+    body.appendChild(el("div", "desc", svc.description || svc.uptime || svc.status));
+
+    a.appendChild(body);
+    return a;
+  }
+
+  function render(data) {
+    document.getElementById("title").textContent = data.title;
+    document.title = data.title;
+    document.getElementById("tagline").textContent = data.tagline;
+
+    content.textContent = "";
+    var groups = data.groups || [];
+    var total = 0;
+
+    if (!groups.length) {
+      var empty = el("div", "notice");
+      empty.appendChild(document.createTextNode("No services are opted in yet. Add "));
+      empty.appendChild(el("code", null, 'homepage.enable="true"'));
+      empty.appendChild(document.createTextNode(" and "));
+      empty.appendChild(el("code", null, 'homepage.url="https://…"'));
+      empty.appendChild(document.createTextNode(" labels to a container, then recreate it."));
+      content.appendChild(empty);
+    }
+
+    groups.forEach(function (g) {
+      content.appendChild(el("h2", null, g.name));
+      var grid = el("div", "grid");
+      g.services.forEach(function (svc) {
+        grid.appendChild(card(svc));
+        total++;
+      });
+      content.appendChild(grid);
+    });
+
+    updated.textContent = "Updated " + new Date(data.updated).toLocaleTimeString();
+    count.textContent = total === 1 ? "1 service" : total + " services";
+  }
+
+  function showError() {
+    content.textContent = "";
+    content.appendChild(el("div", "notice error", "Can't reach the Docker daemon. The dashboard will keep retrying."));
+    count.textContent = "";
+  }
+
+  function load() {
+    fetch("/api/services", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      })
+      .then(render)
+      .catch(showError);
+  }
+
+  load();
+  setInterval(load, REFRESH_MS);
+  // Catch up immediately when a backgrounded tab comes forward.
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) load();
+  });
+})();
+</script>
+</body>
+</html>

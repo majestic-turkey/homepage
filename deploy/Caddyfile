@@ -1,0 +1,20 @@
+# Caddy fetches and renews certificates automatically; point the A/AAAA records
+# for both names at the VPS and this is the whole config.
+
+thesaltworks.io {
+	redir https://www.thesaltworks.io{uri} permanent
+}
+
+www.thesaltworks.io {
+	encode zstd gzip
+
+	# Caddy resolves `homepage` over the shared `web` Docker network, so the
+	# container never needs a published port on the host.
+	reverse_proxy homepage:8080
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+	}
+}
