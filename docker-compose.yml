@@ -42,10 +42,18 @@ services:
       SITE_TAGLINE: Services running on this box
       # PUBLIC_HOST: thesaltworks.io   # optional: derive links from published ports
     networks:
+      # Two networks, and both are load-bearing. homepage-internal is how this
+      # container reaches the socket proxy. homepage-edge exists solely so the
+      # published port below can be established: Docker cannot publish a port
+      # for a container attached only to an `internal: true` network, and it
+      # fails silently when you try — the binding shows up in the container's
+      # HostConfig but never takes effect, and `docker ps` reports a bare
+      # `8080/tcp`.
       - homepage-internal
-    # Bound to loopback: the host's Caddy/nginx reaches it at 127.0.0.1:8080,
-    # and nothing outside the VPS can hit the container directly. If you later
-    # move your proxy into Docker, drop this and put both on a shared network
+      - homepage-edge
+    # Bound to loopback: the host's nginx reaches it at 127.0.0.1:8080, and
+    # nothing outside the VPS can hit the container directly. If you later move
+    # your proxy into Docker, drop this and put both on a shared network
     # instead so the port never leaves the daemon.
     ports:
       - "127.0.0.1:8080:8080"
@@ -64,7 +72,11 @@ services:
       homepage.order: "99"
 
 networks:
-  # No internet access and no published ports: the socket proxy is reachable
+  # No route off the host and no published ports: the socket proxy is reachable
   # only from the homepage container.
   homepage-internal:
     internal: true
+
+  # An ordinary bridge carrying the homepage container alone. Only here so the
+  # loopback publish above works; the socket proxy is deliberately not on it.
+  homepage-edge: {}
